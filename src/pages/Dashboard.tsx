@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ import {
   Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // Mock data for demonstration
 const mockMentors = [
@@ -90,8 +92,17 @@ const mockUpcomingSessions = [
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedField, setSelectedField] = useState<string | null>(null);
+  const { user, profile, role, signOut, loading } = useAuth();
+  const navigate = useNavigate();
 
   const fields = ["All", "Technology", "Business", "Science", "Agriculture"];
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth?mode=login");
+    }
+  }, [user, loading, navigate]);
 
   const filteredMentors = mockMentors.filter((mentor) => {
     const matchesSearch =
@@ -100,6 +111,38 @@ const Dashboard = () => {
     const matchesField = !selectedField || selectedField === "All" || mentor.field === selectedField;
     return matchesSearch && matchesField;
   });
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  const getUserInitials = () => {
+    if (profile?.full_name) {
+      return profile.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "U";
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,6 +193,10 @@ const Dashboard = () => {
 
         {/* Bottom Section */}
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-border">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm text-muted-foreground">Theme</span>
+            <ThemeToggle />
+          </div>
           <Link
             to="/profile"
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
@@ -164,7 +211,10 @@ const Dashboard = () => {
             <Settings className="h-5 w-5" />
             Settings
           </Link>
-          <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full">
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full"
+          >
             <LogOut className="h-5 w-5" />
             Log Out
           </button>
@@ -177,8 +227,12 @@ const Dashboard = () => {
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
           <div className="flex items-center justify-between p-4 lg:p-6">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Find Your Mentor</h1>
-              <p className="text-muted-foreground">Browse and connect with expert mentors</p>
+              <h1 className="text-2xl font-bold text-foreground">
+                {role === "mentor" ? "Student Requests" : "Find Your Mentor"}
+              </h1>
+              <p className="text-muted-foreground">
+                {role === "mentor" ? "Manage your mentorship requests" : "Browse and connect with expert mentors"}
+              </p>
             </div>
             <div className="flex items-center gap-4">
               <button className="relative p-2 rounded-lg hover:bg-secondary transition-colors">
@@ -187,7 +241,7 @@ const Dashboard = () => {
               </button>
               <Link to="/profile" className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
-                  JD
+                  {getUserInitials()}
                 </div>
               </Link>
             </div>
@@ -294,6 +348,24 @@ const Dashboard = () => {
 
             {/* Right Sidebar */}
             <div className="space-y-6">
+              {/* User Info Card */}
+              <Card variant="elevated">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-lg">
+                      {getUserInitials()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{profile?.full_name || "User"}</p>
+                      <Badge variant="secondary" className="capitalize mt-1">
+                        {role || "student"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                </CardContent>
+              </Card>
+
               {/* Upcoming Sessions */}
               <Card variant="gradient">
                 <CardHeader>

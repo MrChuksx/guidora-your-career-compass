@@ -7,19 +7,26 @@ import { Label } from "@/components/ui/label";
 import { GraduationCap, ArrowLeft, User, BookOpen, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { z } from "zod";
 
 type AuthMode = "login" | "signup";
 type UserRole = "student" | "mentor";
+
+const emailSchema = z.string().email("Please enter a valid email address");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signUp, signIn, loading: authLoading } = useAuth();
   
   const [mode, setMode] = useState<AuthMode>((searchParams.get("mode") as AuthMode) || "login");
   const [role, setRole] = useState<UserRole>((searchParams.get("role") as UserRole) || "student");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string }>({});
 
   const [formData, setFormData] = useState({
     email: "",
@@ -27,6 +34,13 @@ const Auth = () => {
     fullName: "",
     confirmPassword: "",
   });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate("/dashboard");
+    }
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     const modeParam = searchParams.get("mode") as AuthMode;
@@ -36,49 +50,119 @@ const Auth = () => {
   }, [searchParams]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+    // Clear error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: typeof errors = {};
+
+    const emailResult = emailSchema.safeParse(formData.email);
+    if (!emailResult.success) {
+      newErrors.email = emailResult.error.errors[0].message;
+    }
+
+    const passwordResult = passwordSchema.safeParse(formData.password);
+    if (!passwordResult.success) {
+      newErrors.password = passwordResult.error.errors[0].message;
+    }
+
+    if (mode === "signup") {
+      if (!formData.fullName.trim()) {
+        newErrors.fullName = "Please enter your full name";
+      }
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.password = "Passwords don't match";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      if (mode === "signup") {
+        const { error } = await signUp(formData.email, formData.password, formData.fullName, role);
+        
+        if (error) {
+          if (error.message.includes("already registered")) {
+            toast({
+              title: "Account exists",
+              description: "An account with this email already exists. Please log in instead.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Sign up failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+          setIsLoading(false);
+          return;
+        }
 
-    if (mode === "signup") {
-      if (formData.password !== formData.confirmPassword) {
         toast({
-          title: "Passwords don't match",
-          description: "Please make sure your passwords match.",
-          variant: "destructive",
+          title: "Account created!",
+          description: `Welcome to Guidora as a ${role}. You're now logged in.`,
         });
-        setIsLoading(false);
-        return;
+        navigate("/dashboard");
+      } else {
+        const { error } = await signIn(formData.email, formData.password);
+        
+        if (error) {
+          toast({
+            title: "Login failed",
+            description: "Invalid email or password. Please try again.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully logged in.",
+        });
+        navigate("/dashboard");
       }
-
+    } catch (error) {
       toast({
-        title: "Account created!",
-        description: `Welcome to Guidora as a ${role}. Please check your email to verify your account.`,
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
-      });
+    } finally {
+      setIsLoading(false);
     }
-
-    // Navigate to dashboard after successful auth
-    navigate("/dashboard");
-    setIsLoading(false);
   };
 
   const toggleMode = () => {
     setMode((prev) => (prev === "login" ? "signup" : "login"));
+    setErrors({});
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-hero flex flex-col">
@@ -172,8 +256,11 @@ const Auth = () => {
                       placeholder="Enter your full name"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      required
+                      className={errors.fullName ? "border-destructive" : ""}
                     />
+                    {errors.fullName && (
+                      <p className="text-sm text-destructive">{errors.fullName}</p>
+                    )}
                   </div>
                 )}
 
@@ -187,8 +274,11 @@ const Auth = () => {
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    required
+                    className={errors.email ? "border-destructive" : ""}
                   />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
                 </div>
 
                 {/* Password */}
@@ -202,8 +292,7 @@ const Auth = () => {
                       placeholder="Enter your password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      required
-                      className="pr-10"
+                      className={cn("pr-10", errors.password ? "border-destructive" : "")}
                     />
                     <button
                       type="button"
@@ -213,6 +302,9 @@ const Auth = () => {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
                 </div>
 
                 {/* Confirm Password (Signup only) */}
@@ -226,7 +318,6 @@ const Auth = () => {
                       placeholder="Confirm your password"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      required
                     />
                   </div>
                 )}

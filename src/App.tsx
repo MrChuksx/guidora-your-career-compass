@@ -10,6 +10,9 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Connection from "./pages/Connection";
+import Messages from "./pages/Messages";
+import Sessions from "./pages/Sessions";
+import Availability from "./pages/Availability";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +31,9 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/connection" element={<Connection />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/sessions" element={<Sessions />} />
+              <Route path="/availability" element={<Availability />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -167,20 +167,29 @@ const Dashboard = () => {
               Browse Mentors
             </Link>
             <Link
-              to="/dashboard/sessions"
+              to="/sessions"
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             >
               <Calendar className="h-5 w-5" />
               My Sessions
             </Link>
             <Link
-              to="/dashboard/messages"
+              to="/messages"
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             >
               <MessageSquare className="h-5 w-5" />
               Messages
               <Badge className="ml-auto bg-accent text-accent-foreground text-xs">3</Badge>
             </Link>
+            {role === "mentor" && (
+              <Link
+                to="/availability"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                <Clock className="h-5 w-5" />
+                Availability
+              </Link>
+            )}
             <Link
               to="/dashboard/resources"
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"

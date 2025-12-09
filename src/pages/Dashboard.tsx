@@ -11,91 +11,79 @@ import {
   MessageSquare,
   Bell,
   User,
-  Settings,
   LogOut,
-  Star,
   Clock,
-  BookOpen,
   Users,
-  ChevronRight,
-  Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSessions } from "@/hooks/useSessions";
+import { useMessages } from "@/hooks/useMessages";
+import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
+import { BookSessionDialog } from "@/components/BookSessionDialog";
 
-// Mock data for demonstration
-const mockMentors = [
-  {
-    id: 1,
-    name: "Dr. Sarah Johnson",
-    avatar: "SJ",
-    expertise: ["Machine Learning", "Data Science", "Python"],
-    rating: 4.9,
-    sessions: 156,
-    field: "Technology",
-    bio: "Senior Data Scientist at Google with 10+ years of experience.",
-    availability: "Available",
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    avatar: "MC",
-    expertise: ["Business Strategy", "Entrepreneurship", "Marketing"],
-    rating: 4.8,
-    sessions: 89,
-    field: "Business",
-    bio: "Founder & CEO of two successful startups. Harvard MBA.",
-    availability: "Available",
-  },
-  {
-    id: 3,
-    name: "Prof. Amara Osei",
-    avatar: "AO",
-    expertise: ["Agricultural Technology", "Sustainable Farming"],
-    rating: 4.7,
-    sessions: 67,
-    field: "Agriculture",
-    bio: "Professor of Agricultural Sciences with a focus on sustainable practices.",
-    availability: "Busy",
-  },
-  {
-    id: 4,
-    name: "David Kim",
-    avatar: "DK",
-    expertise: ["React", "Node.js", "System Design"],
-    rating: 4.9,
-    sessions: 203,
-    field: "Technology",
-    bio: "Staff Engineer at Meta. Open source contributor.",
-    availability: "Available",
-  },
-];
-
-const mockUpcomingSessions = [
-  {
-    id: 1,
-    mentorName: "Dr. Sarah Johnson",
-    topic: "Career Path in Data Science",
-    date: "Dec 10, 2024",
-    time: "3:00 PM",
-  },
-  {
-    id: 2,
-    mentorName: "Michael Chen",
-    topic: "Building Your First Startup",
-    date: "Dec 12, 2024",
-    time: "5:00 PM",
-  },
-];
+interface Mentor {
+  id: string;
+  user_id: string;
+  full_name: string;
+  bio: string | null;
+  skills: string[] | null;
+  avatar: string;
+}
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedField, setSelectedField] = useState<string | null>(null);
-  const { user, profile, role, signOut, loading } = useAuth();
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [loadingMentors, setLoadingMentors] = useState(true);
+const { user, profile, role, signOut, loading } = useAuth();
+  const { sessions } = useSessions();
+  const { conversations, startConversation } = useMessages();
   const navigate = useNavigate();
 
   const fields = ["All", "Technology", "Business", "Science", "Agriculture"];
+
+  // Fetch mentors from database
+  useEffect(() => {
+    const fetchMentors = async () => {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "mentor");
+
+      if (roleData && roleData.length > 0) {
+        const mentorIds = roleData.map((r) => r.user_id);
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("user_id", mentorIds);
+
+        if (profileData) {
+          setMentors(
+            profileData.map((p) => ({
+              id: p.id,
+              user_id: p.user_id,
+              full_name: p.full_name || "Mentor",
+              bio: p.bio,
+              skills: p.skills,
+              avatar: p.full_name
+                ? p.full_name
+                    .split(" ")
+                    .map((n: string) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)
+                : "M",
+            }))
+          );
+        }
+      }
+      setLoadingMentors(false);
+    };
+
+    fetchMentors();
+  }, []);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -104,12 +92,11 @@ const Dashboard = () => {
     }
   }, [user, loading, navigate]);
 
-  const filteredMentors = mockMentors.filter((mentor) => {
+  const filteredMentors = mentors.filter((mentor) => {
     const matchesSearch =
-      mentor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      mentor.expertise.some((e) => e.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesField = !selectedField || selectedField === "All" || mentor.field === selectedField;
-    return matchesSearch && matchesField;
+      mentor.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (mentor.skills || []).some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesSearch;
   });
 
   const handleSignOut = async () => {
@@ -131,6 +118,10 @@ const Dashboard = () => {
     }
     return "U";
   };
+
+  const unreadCount = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  const upcomingSessions = sessions.filter((s) => s.status === "confirmed" || s.status === "pending");
+  const pendingCount = sessions.filter((s) => s.status === "pending").length;
 
   if (loading) {
     return (
@@ -172,6 +163,9 @@ const Dashboard = () => {
             >
               <Calendar className="h-5 w-5" />
               My Sessions
+              {pendingCount > 0 && (
+                <Badge className="ml-auto bg-yellow-500 text-white text-xs">{pendingCount}</Badge>
+              )}
             </Link>
             <Link
               to="/messages"
@@ -179,7 +173,9 @@ const Dashboard = () => {
             >
               <MessageSquare className="h-5 w-5" />
               Messages
-              <Badge className="ml-auto bg-accent text-accent-foreground text-xs">3</Badge>
+              {unreadCount > 0 && (
+                <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{unreadCount}</Badge>
+              )}
             </Link>
             {role === "mentor" && (
               <Link
@@ -190,13 +186,6 @@ const Dashboard = () => {
                 Availability
               </Link>
             )}
-            <Link
-              to="/dashboard/resources"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            >
-              <BookOpen className="h-5 w-5" />
-              Resources
-            </Link>
           </nav>
         </div>
 
@@ -212,13 +201,6 @@ const Dashboard = () => {
           >
             <User className="h-5 w-5" />
             Profile
-          </Link>
-          <Link
-            to="/settings"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-          >
-            <Settings className="h-5 w-5" />
-            Settings
           </Link>
           <button
             onClick={handleSignOut}
@@ -244,10 +226,12 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <button className="relative p-2 rounded-lg hover:bg-secondary transition-colors">
+              <Link to="/sessions" className="relative p-2 rounded-lg hover:bg-secondary transition-colors">
                 <Bell className="h-5 w-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full" />
-              </button>
+                {pendingCount > 0 && (
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full" />
+                )}
+              </Link>
               <Link to="/profile" className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
                   {getUserInitials()}
@@ -266,93 +250,84 @@ const Dashboard = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
-                    placeholder="Search mentors by name or expertise..."
+                    placeholder="Search mentors by name or skills..."
                     className="pl-10"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <Button variant="outline" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filters
-                </Button>
-              </div>
-
-              {/* Field Tags */}
-              <div className="flex flex-wrap gap-2">
-                {fields.map((field) => (
-                  <button
-                    key={field}
-                    onClick={() => setSelectedField(field === "All" ? null : field)}
-                    className={cn(
-                      "px-4 py-2 rounded-full text-sm font-medium transition-all",
-                      selectedField === field || (field === "All" && !selectedField)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    )}
-                  >
-                    {field}
-                  </button>
-                ))}
               </div>
 
               {/* Mentors Grid */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                {filteredMentors.map((mentor) => (
-                  <Card key={mentor.id} variant="interactive" className="group">
-                    <CardContent className="p-5">
-                      <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-xl bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-lg shrink-0">
-                          {mentor.avatar}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground truncate">{mentor.name}</h3>
-                            <Badge
-                              variant={mentor.availability === "Available" ? "default" : "secondary"}
-                              className={cn(
-                                "text-xs shrink-0",
-                                mentor.availability === "Available"
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-muted text-muted-foreground"
-                              )}
-                            >
-                              {mentor.availability}
-                            </Badge>
+              {loadingMentors ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                </div>
+              ) : filteredMentors.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <p className="text-lg font-medium text-foreground mb-2">No mentors found</p>
+                    <p className="text-muted-foreground">
+                      {mentors.length === 0
+                        ? "No mentors have signed up yet. Check back later!"
+                        : "Try adjusting your search query"}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {filteredMentors.map((mentor) => (
+                    <Card key={mentor.id} variant="interactive" className="group">
+                      <CardContent className="p-5">
+                        <div className="flex items-start gap-4">
+                          <div className="w-14 h-14 rounded-xl bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-lg shrink-0">
+                            {mentor.avatar}
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">{mentor.field}</p>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                            <span className="flex items-center gap-1">
-                              <Star className="h-4 w-4 text-accent fill-accent" />
-                              {mentor.rating}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              {mentor.sessions} sessions
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {mentor.expertise.slice(0, 2).map((skill) => (
-                              <Badge key={skill} variant="secondary" className="text-xs">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {mentor.expertise.length > 2 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{mentor.expertise.length - 2}
-                              </Badge>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-foreground truncate mb-2">{mentor.full_name}</h3>
+                            {mentor.skills && mentor.skills.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-3">
+                                {mentor.skills.slice(0, 3).map((skill) => (
+                                  <Badge key={skill} variant="secondary" className="text-xs">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                                {mentor.skills.length > 3 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{mentor.skills.length - 3}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                            {mentor.bio && (
+                              <p className="text-sm text-muted-foreground line-clamp-2">{mentor.bio}</p>
                             )}
                           </div>
                         </div>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground line-clamp-1">{mentor.bio}</p>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        <div className="mt-4 pt-4 border-t border-border flex items-center gap-2">
+                          <BookSessionDialog mentorId={mentor.user_id} mentorName={mentor.full_name}>
+                            <Button variant="hero" size="sm" className="flex-1">
+                              <Calendar className="h-4 w-4 mr-2" />
+                              Book Session
+                            </Button>
+                          </BookSessionDialog>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              await startConversation(mentor.user_id);
+                              navigate("/messages");
+                            }}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right Sidebar */}
@@ -372,6 +347,13 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <Link to="/profile">
+                      <Button variant="outline" size="sm" className="w-full">
+                        Edit Profile
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -385,28 +367,48 @@ const Dashboard = () => {
                   <CardDescription>Your scheduled mentorship sessions</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockUpcomingSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="p-4 rounded-xl bg-secondary/50 border border-border/50 hover:shadow-soft transition-shadow"
-                    >
-                      <p className="font-medium text-foreground mb-1">{session.topic}</p>
-                      <p className="text-sm text-muted-foreground mb-2">with {session.mentorName}</p>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {session.date}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {session.time}
-                        </span>
+                  {upcomingSessions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No upcoming sessions</p>
+                  ) : (
+                    upcomingSessions.slice(0, 3).map((session) => (
+                      <div
+                        key={session.id}
+                        className="p-4 rounded-xl bg-secondary/50 border border-border/50 hover:shadow-soft transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <p className="font-medium text-foreground">{session.topic}</p>
+                          <Badge
+                            className={cn(
+                              "text-xs",
+                              session.status === "pending"
+                                ? "bg-yellow-500/10 text-yellow-600"
+                                : "bg-primary/10 text-primary"
+                            )}
+                          >
+                            {session.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          with {role === "mentor" ? session.student_name : session.mentor_name}
+                        </p>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {new Date(session.scheduled_date).toLocaleDateString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {session.start_time.slice(0, 5)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  <Button variant="outline" className="w-full">
-                    View All Sessions
-                  </Button>
+                    ))
+                  )}
+                  <Link to="/sessions">
+                    <Button variant="outline" className="w-full">
+                      View All Sessions
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
 
@@ -418,21 +420,23 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 rounded-xl bg-secondary/50">
-                      <p className="text-2xl font-bold text-foreground">12</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {sessions.filter((s) => s.status === "completed").length}
+                      </p>
                       <p className="text-sm text-muted-foreground">Sessions</p>
                     </div>
                     <div className="text-center p-4 rounded-xl bg-secondary/50">
-                      <p className="text-2xl font-bold text-foreground">4</p>
-                      <p className="text-sm text-muted-foreground">Mentors</p>
+                      <p className="text-2xl font-bold text-foreground">{conversations.length}</p>
+                      <p className="text-sm text-muted-foreground">Conversations</p>
                     </div>
-                    <div className="text-center p-4 rounded-xl bg-secondary/50">
-                      <p className="text-2xl font-bold text-foreground">8</p>
-                      <p className="text-sm text-muted-foreground">Resources</p>
-                    </div>
-                    <div className="text-center p-4 rounded-xl bg-secondary/50">
-                      <p className="text-2xl font-bold text-foreground">15h</p>
-                      <p className="text-sm text-muted-foreground">Learning</p>
-                    </div>
+                    <Link to="/sessions" className="text-center p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
+                      <p className="text-2xl font-bold text-foreground">{upcomingSessions.length}</p>
+                      <p className="text-sm text-muted-foreground">Upcoming</p>
+                    </Link>
+                    <Link to="/messages" className="text-center p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
+                      <p className="text-2xl font-bold text-foreground">{unreadCount}</p>
+                      <p className="text-sm text-muted-foreground">Unread</p>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

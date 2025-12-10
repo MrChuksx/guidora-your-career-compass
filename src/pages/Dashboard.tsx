@@ -242,6 +242,33 @@ const { user, profile, role, signOut, loading } = useAuth();
         </header>
 
         <div className="p-4 lg:p-6">
+          {/* Quick Navigation Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 lg:hidden">
+            <Link to="/sessions" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
+              <Calendar className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium text-foreground">Sessions</span>
+            </Link>
+            <Link to="/messages" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
+              <MessageSquare className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium text-foreground">Messages</span>
+            </Link>
+            <Link to="/profile" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
+              <User className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium text-foreground">Profile</span>
+            </Link>
+            {role === "mentor" ? (
+              <Link to="/availability" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
+                <Clock className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium text-foreground">Availability</span>
+              </Link>
+            ) : (
+              <Link to="/" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
+                <GraduationCap className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium text-foreground">Home</span>
+              </Link>
+            )}
+          </div>
+
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Content Area */}
             <div className="lg:col-span-2 space-y-6">

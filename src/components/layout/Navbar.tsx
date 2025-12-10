@@ -14,8 +14,8 @@ const Navbar = () => {
 
   const navLinks = [
     { name: "Home", path: "/" },
-    { name: "About", path: "/#how-it-works" },
-    { name: "Features", path: "/#features" },
+    { name: "About", path: "/about" },
+    { name: "Features", path: "/features" },
   ];
 
   const isActive = (path: string) => location.pathname === path;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,11 @@ import {
   LogOut,
   Clock,
   Users,
+  Menu,
+  X,
+  Home,
+  Info,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,10 +42,12 @@ const Dashboard = () => {
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loadingMentors, setLoadingMentors] = useState(true);
-const { user, profile, role, signOut, loading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, profile, role, signOut, loading } = useAuth();
   const { sessions } = useSessions();
   const { conversations, startConversation } = useMessages();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fields = ["All", "Technology", "Business", "Science", "Agriculture"];
 
@@ -135,57 +142,72 @@ const { user, profile, role, signOut, loading } = useAuth();
     return null;
   }
 
+  const isActivePath = (path: string) => location.pathname === path;
+
+  const navItems = [
+    { name: "Home", path: "/", icon: Home },
+    { name: "Dashboard", path: "/dashboard", icon: Users },
+    { name: "Sessions", path: "/sessions", icon: Calendar, badge: pendingCount },
+    { name: "Messages", path: "/messages", icon: MessageSquare, badge: unreadCount },
+    ...(role === "mentor" ? [{ name: "Availability", path: "/availability", icon: Clock }] : []),
+    { name: "Profile", path: "/profile", icon: User },
+    { name: "About", path: "/about", icon: Info },
+    { name: "Features", path: "/features", icon: Sparkles },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-border hidden lg:block">
+      <aside className={cn(
+        "fixed left-0 top-0 h-full w-64 bg-card border-r border-border z-50 transition-transform duration-300",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
         <div className="p-6">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 mb-8">
-            <div className="p-2 rounded-lg bg-gradient-primary">
-              <GraduationCap className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground">Guidora</span>
-          </Link>
+          {/* Header with close button */}
+          <div className="flex items-center justify-between mb-8">
+            <Link to="/" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
+              <div className="p-2 rounded-lg bg-gradient-primary">
+                <GraduationCap className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-bold text-foreground">Guidora</span>
+            </Link>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
           {/* Navigation */}
-          <nav className="space-y-2">
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium"
-            >
-              <Users className="h-5 w-5" />
-              Browse Mentors
-            </Link>
-            <Link
-              to="/sessions"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            >
-              <Calendar className="h-5 w-5" />
-              My Sessions
-              {pendingCount > 0 && (
-                <Badge className="ml-auto bg-yellow-500 text-white text-xs">{pendingCount}</Badge>
-              )}
-            </Link>
-            <Link
-              to="/messages"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            >
-              <MessageSquare className="h-5 w-5" />
-              Messages
-              {unreadCount > 0 && (
-                <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{unreadCount}</Badge>
-              )}
-            </Link>
-            {role === "mentor" && (
+          <nav className="space-y-1">
+            {navItems.map((item) => (
               <Link
-                to="/availability"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors",
+                  isActivePath(item.path)
+                    ? "bg-secondary text-secondary-foreground font-medium"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
               >
-                <Clock className="h-5 w-5" />
-                Availability
+                <item.icon className="h-5 w-5" />
+                {item.name}
+                {item.badge && item.badge > 0 && (
+                  <Badge className="ml-auto bg-primary text-primary-foreground text-xs">{item.badge}</Badge>
+                )}
               </Link>
-            )}
+            ))}
           </nav>
         </div>
 
@@ -195,15 +217,8 @@ const { user, profile, role, signOut, loading } = useAuth();
             <span className="text-sm text-muted-foreground">Theme</span>
             <ThemeToggle />
           </div>
-          <Link
-            to="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-          >
-            <User className="h-5 w-5" />
-            Profile
-          </Link>
           <button
-            onClick={handleSignOut}
+            onClick={() => { handleSignOut(); setSidebarOpen(false); }}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full"
           >
             <LogOut className="h-5 w-5" />
@@ -215,15 +230,23 @@ const { user, profile, role, signOut, loading } = useAuth();
       {/* Main Content */}
       <main className="lg:ml-64">
         {/* Header */}
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
+        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-lg border-b border-border">
           <div className="flex items-center justify-between p-4 lg:p-6">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {role === "mentor" ? "Student Requests" : "Find Your Mentor"}
-              </h1>
-              <p className="text-muted-foreground">
-                {role === "mentor" ? "Manage your mentorship requests" : "Browse and connect with expert mentors"}
-              </p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {role === "mentor" ? "Student Requests" : "Find Your Mentor"}
+                </h1>
+                <p className="text-muted-foreground hidden sm:block">
+                  {role === "mentor" ? "Manage your mentorship requests" : "Browse and connect with expert mentors"}
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <Link to="/sessions" className="relative p-2 rounded-lg hover:bg-secondary transition-colors">
@@ -242,32 +265,6 @@ const { user, profile, role, signOut, loading } = useAuth();
         </header>
 
         <div className="p-4 lg:p-6">
-          {/* Quick Navigation Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 lg:hidden">
-            <Link to="/sessions" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
-              <Calendar className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium text-foreground">Sessions</span>
-            </Link>
-            <Link to="/messages" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
-              <MessageSquare className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium text-foreground">Messages</span>
-            </Link>
-            <Link to="/profile" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
-              <User className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium text-foreground">Profile</span>
-            </Link>
-            {role === "mentor" ? (
-              <Link to="/availability" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
-                <Clock className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium text-foreground">Availability</span>
-              </Link>
-            ) : (
-              <Link to="/" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border hover:bg-secondary transition-colors">
-                <GraduationCap className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium text-foreground">Home</span>
-              </Link>
-            )}
-          </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Main Content Area */}

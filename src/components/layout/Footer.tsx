@@ -6,7 +6,7 @@ const Footer = () => {
 
   const footerLinks = {
     product: [
-      { name: "Features", href: "/#features" },
+      { name: "Features", href: "/features" },
       { name: "How It Works", href: "/#how-it-works" },
       { name: "For Students", href: "/#for-students" },
       { name: "For Mentors", href: "/#for-mentors" },

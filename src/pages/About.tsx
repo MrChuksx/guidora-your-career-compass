@@ -3,6 +3,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, Target, Heart, Lightbulb } from "lucide-react";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 const About = () => {
   const values = [
@@ -29,7 +30,7 @@ const About = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <BeamsBackground intensity="subtle" className="bg-background">
       <Navbar />
       
       <main className="pt-24 pb-16">
@@ -136,7 +137,7 @@ const About = () => {
       </main>
 
       <Footer />
-    </div>
+    </BeamsBackground>
   );
 };
 

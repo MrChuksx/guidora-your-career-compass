@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Briefcase, MapPin, Clock, ArrowRight } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 const Careers = () => {
   const openPositions = [
@@ -43,7 +44,7 @@ const Careers = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <BeamsBackground intensity="subtle" className="bg-background">
       <Navbar />
       <main className="flex-1">
         {/* Hero Section */}
@@ -113,7 +114,7 @@ const Careers = () => {
         </section>
       </main>
       <Footer />
-    </div>
+    </BeamsBackground>
   );
 };
 

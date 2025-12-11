@@ -1,9 +1,10 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 const Cookies = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <BeamsBackground intensity="subtle" className="bg-background">
       <Navbar />
       <main className="flex-1 py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
@@ -73,7 +74,7 @@ const Cookies = () => {
         </div>
       </main>
       <Footer />
-    </div>
+    </BeamsBackground>
   );
 };
 

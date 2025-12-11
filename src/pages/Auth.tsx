@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { z } from "zod";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 type AuthMode = "login" | "signup";
 type UserRole = "student" | "mentor";
@@ -158,14 +159,14 @@ const Auth = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+      <BeamsBackground intensity="subtle" className="bg-background flex items-center justify-center">
         <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
+      </BeamsBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex flex-col">
+    <BeamsBackground intensity="subtle" className="bg-background flex flex-col">
       {/* Header */}
       <header className="p-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -359,7 +360,7 @@ const Auth = () => {
           </Card>
         </div>
       </main>
-    </div>
+    </BeamsBackground>
   );
 };
 

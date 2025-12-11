@@ -2,6 +2,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { BeamsBackground } from "@/components/ui/beams-background";
 import { 
   Users, 
   Calendar, 
@@ -90,7 +91,7 @@ const Features = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <BeamsBackground intensity="subtle" className="bg-background">
       <Navbar />
       
       <main className="pt-24 pb-16">
@@ -193,7 +194,7 @@ const Features = () => {
       </main>
 
       <Footer />
-    </div>
+    </BeamsBackground>
   );
 };
 

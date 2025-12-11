@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, User, ArrowRight } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 const Blog = () => {
   const posts = [
@@ -42,7 +43,7 @@ const Blog = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <BeamsBackground intensity="subtle" className="bg-background">
       <Navbar />
       <main className="flex-1">
         {/* Hero Section */}
@@ -98,7 +99,7 @@ const Blog = () => {
         </section>
       </main>
       <Footer />
-    </div>
+    </BeamsBackground>
   );
 };
 

@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSessions } from "@/hooks/useSessions";
 import ThemeToggle from "@/components/ThemeToggle";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 const Sessions = () => {
   const { user, role, loading: authLoading } = useAuth();
@@ -138,14 +139,14 @@ const Sessions = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <BeamsBackground intensity="subtle" className="bg-background flex items-center justify-center">
         <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
+      </BeamsBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
+    <BeamsBackground intensity="subtle" className="bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -243,7 +244,7 @@ const Sessions = () => {
           </Tabs>
         </div>
       </main>
-    </div>
+    </BeamsBackground>
   );
 };
 

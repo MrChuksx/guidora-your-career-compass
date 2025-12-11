@@ -27,6 +27,7 @@ import { useMessages } from "@/hooks/useMessages";
 import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import { BookSessionDialog } from "@/components/BookSessionDialog";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 interface Mentor {
   id: string;
@@ -156,7 +157,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <BeamsBackground intensity="subtle" className="bg-background">
       {/* Overlay */}
       {sidebarOpen && (
         <div 
@@ -468,7 +469,7 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
-    </div>
+    </BeamsBackground>
   );
 };
 

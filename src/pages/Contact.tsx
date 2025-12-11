@@ -7,6 +7,7 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -45,7 +46,7 @@ const Contact = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <BeamsBackground intensity="subtle" className="bg-background">
       <Navbar />
       <main className="flex-1">
         {/* Hero Section */}
@@ -130,7 +131,7 @@ const Contact = () => {
         </section>
       </main>
       <Footer />
-    </div>
+    </BeamsBackground>
   );
 };
 

@@ -5,10 +5,11 @@ import FeaturesSection from "@/components/home/FeaturesSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
 import CTASection from "@/components/home/CTASection";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 const Index = () => {
   return (
-    <div className="min-h-screen">
+    <BeamsBackground intensity="subtle" className="bg-background">
       <Navbar />
       <main>
         <HeroSection />
@@ -18,7 +19,7 @@ const Index = () => {
         <CTASection />
       </main>
       <Footer />
-    </div>
+    </BeamsBackground>
   );
 };
 

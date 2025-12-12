@@ -51,7 +51,7 @@ const Footer = () => {
                 <Twitter className="h-5 w-5" />
               </a>
               <a
-                href="https://linkedin.com"
+                href="https://linkedin.com/company/axiom-technologies"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-lg bg-background/10 hover:bg-background/20 transition-colors"
@@ -60,7 +60,7 @@ const Footer = () => {
                 <Linkedin className="h-5 w-5" />
               </a>
               <a
-                href="mailto:hello@guidora.com"
+                href="mailto:theaxiom25@gmail.com"
                 className="p-2 rounded-lg bg-background/10 hover:bg-background/20 transition-colors"
                 aria-label="Email"
               >

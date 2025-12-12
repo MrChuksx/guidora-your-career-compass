@@ -1,28 +1,29 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   GraduationCap,
   ArrowLeft,
   User,
   Mail,
-  MapPin,
-  Briefcase,
-  BookOpen,
   Calendar,
   Clock,
   Edit3,
   Camera,
   Plus,
   X,
+  Trash2,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useAvailability } from "@/hooks/useAvailability";
 import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import { BeamsBackground } from "@/components/ui/beams-background";
@@ -33,6 +34,7 @@ const Profile = () => {
   const { user, profile, role, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { slots, addSlot, removeSlot, DAYS, loading: availabilityLoading } = useAvailability();
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -40,6 +42,15 @@ const Profile = () => {
     skills: [] as string[],
   });
   const [newSkill, setNewSkill] = useState("");
+  
+  // Availability state for mentors
+  const [newSlot, setNewSlot] = useState({
+    day_of_week: 1,
+    start_time: "09:00",
+    end_time: "10:00",
+    is_recurring: true,
+  });
+  const [isAddingSlot, setIsAddingSlot] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -346,6 +357,137 @@ const Profile = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Availability Section - Only for Mentors */}
+          {role === "mentor" && (
+            <Card variant="elevated" className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Manage Availability
+                </CardTitle>
+                <CardDescription>Set your available time slots for mentorship sessions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Add New Slot */}
+                <div className="grid sm:grid-cols-4 gap-4 mb-6 p-4 rounded-xl bg-secondary/50">
+                  <div className="space-y-2">
+                    <Label>Day</Label>
+                    <Select
+                      value={newSlot.day_of_week.toString()}
+                      onValueChange={(v) => setNewSlot({ ...newSlot, day_of_week: parseInt(v) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DAYS.map((day, index) => (
+                          <SelectItem key={day} value={index.toString()}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Start Time</Label>
+                    <Input
+                      type="time"
+                      value={newSlot.start_time}
+                      onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Time</Label>
+                    <Input
+                      type="time"
+                      value={newSlot.end_time}
+                      onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      onClick={async () => {
+                        if (newSlot.start_time >= newSlot.end_time) {
+                          toast({
+                            title: "Invalid time",
+                            description: "End time must be after start time",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setIsAddingSlot(true);
+                        await addSlot({
+                          day_of_week: newSlot.day_of_week,
+                          start_time: newSlot.start_time,
+                          end_time: newSlot.end_time,
+                          is_recurring: newSlot.is_recurring,
+                          specific_date: null,
+                        });
+                        setIsAddingSlot(false);
+                      }}
+                      disabled={isAddingSlot}
+                      className="w-full"
+                    >
+                      {isAddingSlot ? (
+                        <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Slot
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Weekly Schedule */}
+                <div className="space-y-3">
+                  {availabilityLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    DAYS.map((day, dayIndex) => {
+                      const daySlots = slots.filter((s) => s.day_of_week === dayIndex);
+                      return (
+                        <div
+                          key={day}
+                          className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-secondary/30"
+                        >
+                          <div className="sm:w-24 font-medium text-foreground text-sm">{day}</div>
+                          <div className="flex-1">
+                            {daySlots.length === 0 ? (
+                              <span className="text-sm text-muted-foreground">No availability</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {daySlots.map((slot) => (
+                                  <Badge
+                                    key={slot.id}
+                                    variant="secondary"
+                                    className="px-3 py-1.5 flex items-center gap-2"
+                                  >
+                                    <Clock className="h-3 w-3" />
+                                    {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                                    <button
+                                      onClick={() => removeSlot(slot.id)}
+                                      className="ml-1 hover:text-destructive transition-colors"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Account Info */}
           <Card variant="default">

@@ -9,7 +9,6 @@ import {
   Search,
   Calendar,
   MessageSquare,
-  Bell,
   User,
   LogOut,
   Clock,
@@ -28,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import { BookSessionDialog } from "@/components/BookSessionDialog";
 import { BeamsBackground } from "@/components/ui/beams-background";
+import NotificationsDropdown from "@/components/NotificationsDropdown";
 
 interface Mentor {
   id: string;
@@ -250,12 +250,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Link to="/sessions" className="relative p-2 rounded-lg hover:bg-secondary transition-colors">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                {pendingCount > 0 && (
-                  <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full" />
-                )}
-              </Link>
+              <NotificationsDropdown />
               <Link to="/profile" className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
                   {getUserInitials()}

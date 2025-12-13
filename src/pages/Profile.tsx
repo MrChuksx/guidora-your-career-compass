@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,12 +20,14 @@ import {
   X,
   Trash2,
   BookOpen,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAvailability } from "@/hooks/useAvailability";
+import { useImageUpload } from "@/hooks/useImageUpload";
 import { supabase } from "@/integrations/supabase/client";
-import ThemeToggle from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { BeamsBackground } from "@/components/ui/beams-background";
 
 const Profile = () => {
@@ -35,11 +37,17 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { slots, addSlot, removeSlot, DAYS, loading: availabilityLoading } = useAvailability();
+  const { uploadImage, uploading } = useImageUpload();
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     full_name: "",
     bio: "",
     skills: [] as string[],
+    avatar_url: "",
+    cover_url: "",
   });
   const [newSkill, setNewSkill] = useState("");
   
@@ -64,6 +72,8 @@ const Profile = () => {
         full_name: profile.full_name || "",
         bio: profile.bio || "",
         skills: profile.skills || [],
+        avatar_url: profile.avatar_url || "",
+        cover_url: (profile as any).cover_url || "",
       });
     }
   }, [profile]);
@@ -81,6 +91,44 @@ const Profile = () => {
       return user.email[0].toUpperCase();
     }
     return "U";
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const url = await uploadImage(file, "avatars", user.id);
+    if (url) {
+      setFormData((prev) => ({ ...prev, avatar_url: url }));
+      // Save to database immediately
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("user_id", user.id);
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated.",
+      });
+    }
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const url = await uploadImage(file, "covers", user.id);
+    if (url) {
+      setFormData((prev) => ({ ...prev, cover_url: url }));
+      // Save to database immediately
+      await supabase
+        .from("profiles")
+        .update({ cover_url: url })
+        .eq("user_id", user.id);
+      toast({
+        title: "Cover updated",
+        description: "Your cover photo has been updated.",
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -173,10 +221,33 @@ const Profile = () => {
         <div className="max-w-4xl mx-auto">
           {/* Profile Header Card */}
           <Card variant="elevated" className="mb-6 overflow-hidden">
+            {/* Hidden file inputs */}
+            <input
+              type="file"
+              ref={avatarInputRef}
+              onChange={handleAvatarUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            <input
+              type="file"
+              ref={coverInputRef}
+              onChange={handleCoverUpload}
+              accept="image/*"
+              className="hidden"
+            />
+
             {/* Cover Image */}
-            <div className="h-32 bg-gradient-primary relative">
-              <button className="absolute bottom-4 right-4 p-2 rounded-lg bg-background/20 backdrop-blur-sm text-primary-foreground hover:bg-background/30 transition-colors">
-                <Camera className="h-4 w-4" />
+            <div 
+              className="h-32 bg-gradient-primary relative bg-cover bg-center"
+              style={formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : undefined}
+            >
+              <button 
+                onClick={() => coverInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute bottom-4 right-4 p-2 rounded-lg bg-background/20 backdrop-blur-sm text-primary-foreground hover:bg-background/30 transition-colors disabled:opacity-50"
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
               </button>
             </div>
 
@@ -184,11 +255,23 @@ const Profile = () => {
               <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 -mt-12 mb-6">
                 {/* Avatar */}
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-primary flex items-center justify-center text-primary-foreground text-3xl font-bold border-4 border-background shadow-medium">
-                    {getUserInitials()}
-                  </div>
-                  <button className="absolute -bottom-1 -right-1 p-2 rounded-full bg-secondary border border-border hover:bg-secondary/80 transition-colors">
-                    <Camera className="h-4 w-4 text-foreground" />
+                  {formData.avatar_url ? (
+                    <img 
+                      src={formData.avatar_url} 
+                      alt="Profile" 
+                      className="w-24 h-24 rounded-2xl object-cover border-4 border-background shadow-medium"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-primary flex items-center justify-center text-primary-foreground text-3xl font-bold border-4 border-background shadow-medium">
+                      {getUserInitials()}
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploading}
+                    className="absolute -bottom-1 -right-1 p-2 rounded-full bg-secondary border border-border hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4 text-foreground" />}
                   </button>
                 </div>
 

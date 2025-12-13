@@ -24,7 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSessions } from "@/hooks/useSessions";
 import { useMessages } from "@/hooks/useMessages";
 import { supabase } from "@/integrations/supabase/client";
-import ThemeToggle from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { BookSessionDialog } from "@/components/BookSessionDialog";
 import { BeamsBackground } from "@/components/ui/beams-background";
 import NotificationsDropdown from "@/components/NotificationsDropdown";

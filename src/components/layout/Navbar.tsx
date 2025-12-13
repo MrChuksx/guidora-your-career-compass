@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, GraduationCap, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import ThemeToggle from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
